@@ -1,6 +1,6 @@
 # Complete Series on Backend Development
 
-complete series of backend development which includes session from hitest choudary youtube channel, personal notes, as well as personal links, which helps in development of complete backend engineer.
+complete series of backend development which includes sessions from hitest choudary youtube channel, personal notes, as well as personal links, which helps in development of complete backend engineer.
 
 ## Important Links for Backend Development
 
