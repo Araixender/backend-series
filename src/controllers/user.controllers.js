@@ -4,6 +4,22 @@ import { User } from "../models/users.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAccessAndRefreshToken = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshAccessToken();
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+    return { accessToken, refreshToken };
+  } catch (error) {
+    throw new ApiError(
+      500,
+      "Something went wrong, while generating and refresh token"
+    );
+  }
+};
+
 const registerUser = asyncHandler(async (req, res) => {
   // TODO: Get user details from users.
 
@@ -79,8 +95,56 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, createdUser, "user has been registered"));
 });
 
-const dish = asyncHandler(async (req, res) => {
-  return res.status(200).json({ message: "ok" });
+const loginUser = asyncHandler(async (req, res) => {
+  // TODO: take data from request body
+  // TODO: check if the user existes in to the database
+  // TODO: compare password (which should be already done)
+  // TODO: create token & refresh token
+  // TODO: Save refresh token to the database.
+  // TODO: remove password from response.
+  // TODO: send object of user
+  // TODO: send token as cookie
+
+  const { email, username, password } = req.body;
+
+  if (!username || !email)
+    throw new ApiError(400, "username or password is required");
+
+  const user = await User.findOne({
+    $or: [{ username, email }],
+  });
+
+  if (!user) throw new ApiError(404, "User does not exist");
+
+  const isPasswordValid = await user.isPasswordCorrect(password);
+
+  if (!isPasswordValid) throw new ApiError(401, "invalid user credentials");
+
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    user._id
+  );
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(200, {
+        user: loggedInUser,
+        accessToken,
+        refreshToken,
+        message: "User Logged-In Successfully.",
+      })
+    );
 });
 
-export { registerUser, dish };
+export { registerUser, loginUser };
